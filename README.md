@@ -42,6 +42,7 @@ This project projects 3D point cloud data onto a camera image, obtains the corre
     │   └── rgb_mapper.launch
     └── src
         └── rgb_mapper_node.cpp
+```
 
 ---
 

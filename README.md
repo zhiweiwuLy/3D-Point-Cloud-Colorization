@@ -26,6 +26,13 @@ This project projects 3D point cloud data onto a camera image, obtains the corre
 3D-Point-Cloud-Colorization
 ├── README.md
 ├── LICENSE
+├── docs
+│   └── images
+│   │   ├── fix.png
+│   │   ├── time.png
+│   │   └── raw.png
+|   └── gif
+|       └── result.png
 └── rgb_pointcloud
     ├── CMakeLists.txt
     ├── package.xml
@@ -35,3 +42,30 @@ This project projects 3D point cloud data onto a camera image, obtains the corre
     │   └── rgb_mapper.launch
     └── src
         └── rgb_mapper_node.cpp
+
+---
+
+## Show_Result
+
+<p align="center">
+  <img src="docs/gif/result.gif" alt="3D Point Cloud Colorization Demo" width="700">
+</p>
+
+## Before
+
+<p align="center">
+  <img src="docs/images/fix.png" alt="Point Cloud Colorization Pipeline" width="700">
+</p>
+
+## After
+
+<p align="center">
+  <img src="docs/images/time.png" alt="Colored Point Cloud Result" width="700">
+</p>
+
+## Time
+
+<p align="center">
+  <img src="docs/images/time.png" alt="Colored Point Cloud Result" width="700">
+</p>
+

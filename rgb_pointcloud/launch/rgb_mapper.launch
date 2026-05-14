@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="rgb_pointcloud" type="rgb_mapper_node" name="rgb_mapper_node" output="screen">
+        <param name="camera_yaml" value="$(find rgb_pointcloud)/config/camera.yaml"/>
+    </node>
+</launch>

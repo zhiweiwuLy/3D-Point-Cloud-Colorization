@@ -1,0 +1,45 @@
+# 相机内参
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [609.9613, 0, 632.1937,
+         0, 610.0292, 367.6145,
+         0, 0, 1]
+
+# 畸变系数
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.03319, 0.03557, -8.07e-05, -0.0007168, -0.01233]
+
+# 投影矩阵
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [609.9613, 0, 632.1937, 0,
+         0, 610.0292, 367.6145, 0,
+         0, 0, 1, 0]
+
+# 世界坐标到相机坐标变换矩阵 (4x4)
+world_to_camera:
+  rows: 4
+  cols: 4
+  data: [1,0,0,0,
+         0,1,0,0,
+         0,0,1,0,
+         0,0,0,1]
+
+# 话题名称
+topics:
+  input_pointcloud: "/camera/depth/points"
+  input_image: "/camera/color/image_raw"
+  output_pointcloud: "/colored_points"
+
+#点云ROI区域设置
+roi:
+  x_min: -2.0
+  x_max: 2.0
+  y_min: -3.0
+  y_max: 3.0
+  z_min: 0.0
+  z_max: 30.0

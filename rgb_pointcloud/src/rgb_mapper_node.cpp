@@ -4,7 +4,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/filters/voxel_grid.h>  // 可选降采样
+#include <pcl/filters/voxel_grid.h>
 #include <yaml-cpp/yaml.h>
 #include <opencv2/opencv.hpp>
 #include <chrono>
@@ -19,7 +19,6 @@ public:
         nh.param<std::string>("camera_yaml", yaml_path, "config/camera.yaml");
         YAML::Node cam = YAML::LoadFile(yaml_path);
 
-        // ------------------ 相机内参 ------------------
         auto K_data = cam["camera_matrix"]["data"];
         K_ = (cv::Mat_<double>(3,3) <<
             K_data[0].as<double>(), K_data[1].as<double>(), K_data[2].as<double>(),
@@ -44,15 +43,12 @@ public:
             W2C_data[8].as<double>(), W2C_data[9].as<double>(), W2C_data[10].as<double>(), W2C_data[11].as<double>(),
             W2C_data[12].as<double>(), W2C_data[13].as<double>(), W2C_data[14].as<double>(), W2C_data[15].as<double>());
 
-        // 合并投影矩阵：世界坐标系直接到像素坐标系（3x4）
         proj_ = P_ * world_to_camera_;   // 3x4
 
-        // ------------------ 话题 ------------------
         input_pc_topic_ = cam["topics"]["input_pointcloud"].as<std::string>();
         input_img_topic_ = cam["topics"]["input_image"].as<std::string>();
         output_pc_topic_ = cam["topics"]["output_pointcloud"].as<std::string>();
 
-        // ------------------ ROI ------------------
         roi_x_min_ = cam["roi"]["x_min"].as<double>();
         roi_x_max_ = cam["roi"]["x_max"].as<double>();
         roi_y_min_ = cam["roi"]["y_min"].as<double>();
@@ -60,7 +56,6 @@ public:
         roi_z_min_ = cam["roi"]["z_min"].as<double>();
         roi_z_max_ = cam["roi"]["z_max"].as<double>();
 
-        // 订阅/发布
         pc_sub_ = nh.subscribe(input_pc_topic_, 1, &RGBMapper::pcCallback, this);
         img_sub_ = nh.subscribe(input_img_topic_, 1, &RGBMapper::imgCallback, this);
         pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>(output_pc_topic_, 1);
@@ -75,7 +70,6 @@ public:
         {
             cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
 
-            // 预计算畸变映射表（只需计算一次）
             if (!map_initialized_)
             {
                 cv::initUndistortRectifyMap(K_, D_, cv::Mat(), K_,
@@ -84,11 +78,10 @@ public:
                 map_initialized_ = true;
             }
 
-            // 应用畸变校正
             cv::Mat undistorted;
             cv::remap(cv_ptr->image, undistorted, map1_, map2_, cv::INTER_LINEAR);
             cv_ptr->image = undistorted;
-            cv_ptr_ = cv_ptr;  // 存储最新校正后的图像
+            cv_ptr_ = cv_ptr;
         }
         catch(cv_bridge::Exception& e)
         {
@@ -107,12 +100,10 @@ public:
             return;
         }
 
-        // 转换点云数据
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*pc_msg, *cloud);
         size_t raw_point_count = cloud->points.size();
 
-        // ---- 1. ROI 过滤（仅保留在长方体内部的点）----
         auto t_roi_start = std::chrono::high_resolution_clock::now();
 
         std::vector<size_t> roi_indices;
@@ -138,20 +129,17 @@ public:
             return;
         }
 
-        // ---- 2. 创建彩色点云并预分配空间 ----
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
         colored_cloud->header = cloud->header;
         colored_cloud->points.resize(roi_indices.size());
 
-        // ---- 3. 准备投影矩阵数据（连续双精度数组）和图像参数 ----
-        double* proj_data = proj_.ptr<double>();   // 3x4 矩阵，行优先
+        double* proj_data = proj_.ptr<double>(); 
         cv::Mat& img = cv_ptr_->image;
         const int rows = img.rows;
         const int cols = img.cols;
         const uchar* img_data = img.data;
-        const int step = img.step;   // 每行字节数
+        const int step = img.step; 
 
-        // ---- 4. 并行为每个点赋予颜色 ----
         auto t_color_start = std::chrono::high_resolution_clock::now();
 
         #pragma omp parallel for
@@ -162,16 +150,14 @@ public:
             pcl::PointXYZRGB& cp = colored_cloud->points[i];
             cp.x = p.x; cp.y = p.y; cp.z = p.z;
 
-            // 手动计算投影： [u, v, w]^T = proj_ * [x,y,z,1]^T
             double x = p.x, y = p.y, z = p.z;
             double u = proj_data[0] * x + proj_data[1] * y + proj_data[2] * z + proj_data[3];
             double v = proj_data[4] * x + proj_data[5] * y + proj_data[6] * z + proj_data[7];
             double w = proj_data[8] * x + proj_data[9] * y + proj_data[10] * z + proj_data[11];
 
-            // 确保点在相机前方
             if (w <= 0.0)
             {
-                cp.r = cp.g = cp.b = 255;   // 白色
+                cp.r = cp.g = cp.b = 255;
                 continue;
             }
 
@@ -181,7 +167,6 @@ public:
 
             if (row >= 0 && row < rows && col >= 0 && col < cols)
             {
-                // 直接访问图像内存（BGR 顺序）
                 const uchar* ptr = img_data + row * step + col * 3;
                 cp.b = ptr[0];
                 cp.g = ptr[1];
@@ -196,7 +181,6 @@ public:
         auto t_color_end = std::chrono::high_resolution_clock::now();
         double color_ms = std::chrono::duration<double, std::milli>(t_color_end - t_color_start).count();
 
-        // ---- 5. 设置点云属性并发布 ----
         colored_cloud->width = colored_cloud->points.size();
         colored_cloud->height = 1;
         colored_cloud->is_dense = true;
@@ -208,7 +192,6 @@ public:
         auto t_total_end = std::chrono::high_resolution_clock::now();
         double total_ms = std::chrono::duration<double, std::milli>(t_total_end - t_total_start).count();
 
-        // 打印性能统计
         ROS_INFO("RGBMapper: raw=%zu roi=%zu | ROI filter: %.2f ms | Color map: %.2f ms | Total: %.2f ms",
                  raw_point_count, roi_count, roi_ms, color_ms, total_ms);
     }
@@ -220,13 +203,12 @@ private:
     cv_bridge::CvImagePtr cv_ptr_;
 
     cv::Mat K_, D_, P_, world_to_camera_;
-    cv::Mat proj_;          // 合并后的 3x4 投影矩阵
-    cv::Mat map1_, map2_;   // 畸变校正映射表
+    cv::Mat proj_; 
+    cv::Mat map1_, map2_;
     bool map_initialized_ = false;
 
     std::string input_pc_topic_, input_img_topic_, output_pc_topic_;
 
-    // ROI 参数
     double roi_x_min_, roi_x_max_;
     double roi_y_min_, roi_y_max_;
     double roi_z_min_, roi_z_max_;

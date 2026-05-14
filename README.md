@@ -31,7 +31,7 @@ This project projects 3D point cloud data onto a camera image, obtains the corre
 │       ├── fix.png
 │       ├── time.png
 │       └── raw.png
-|       └──  result.png
+|       └── result.png
 └── rgb_pointcloud
     ├── CMakeLists.txt
     ├── package.xml

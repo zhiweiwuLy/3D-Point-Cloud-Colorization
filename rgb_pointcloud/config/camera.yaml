@@ -1,4 +1,4 @@
-# 相机内参
+# camera intrinsic matrix
 camera_matrix:
   rows: 3
   cols: 3
@@ -6,13 +6,13 @@ camera_matrix:
          0, 610.0292, 367.6145,
          0, 0, 1]
 
-# 畸变系数
+# distortion coefficient matrix
 distortion_coefficients:
   rows: 1
   cols: 5
   data: [-0.03319, 0.03557, -8.07e-05, -0.0007168, -0.01233]
 
-# 投影矩阵
+# camera projection matrix
 projection_matrix:
   rows: 3
   cols: 4
@@ -20,7 +20,7 @@ projection_matrix:
          0, 610.0292, 367.6145, 0,
          0, 0, 1, 0]
 
-# 世界坐标到相机坐标变换矩阵 (4x4)
+# LiDAR-to-camera transformation matrix (4x4)
 world_to_camera:
   rows: 4
   cols: 4
@@ -29,13 +29,13 @@ world_to_camera:
          0,0,1,0,
          0,0,0,1]
 
-# 话题名称
+# topic names
 topics:
   input_pointcloud: "/camera/depth/points"
   input_image: "/camera/color/image_raw"
   output_pointcloud: "/colored_points"
 
-#点云ROI区域设置
+# point cloud ROI region settings
 roi:
   x_min: -2.0
   x_max: 2.0
